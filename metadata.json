@@ -1,0 +1,6 @@
+{
+  "name": "TenderLens Kerala",
+  "description": "Continuous monitoring, location intelligence, and personalized alerts for the Kerala eTender ecosystem.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
