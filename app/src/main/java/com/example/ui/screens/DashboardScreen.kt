@@ -75,6 +75,7 @@ fun DashboardScreen(
     var newSavedSearchName by remember { mutableStateOf("") }
 
     var currentTabSelected by remember { mutableStateOf(0) } // 0 = Personalized Feed, 1 = Search & Filter, 2 = Watchlist
+    var isOverviewExpanded by remember { mutableStateOf(true) }
 
     val bookmarkedTenders = allTendersWithBookmarks.filter { it.isBookmarked }
 
@@ -129,7 +130,7 @@ fun DashboardScreen(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(150.dp)
+                    .height(if (isOverviewExpanded) 150.dp else 65.dp)
             ) {
                 Image(
                     painter = painterResource(id = R.drawable.img_hero_banner),
@@ -152,9 +153,9 @@ fun DashboardScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(16.dp),
+                        .padding(horizontal = 16.dp, vertical = if (isOverviewExpanded) 16.dp else 8.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.Bottom
+                    verticalAlignment = if (isOverviewExpanded) Alignment.Bottom else Alignment.CenterVertically
                 ) {
                     Column {
                         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -171,11 +172,13 @@ fun DashboardScreen(
                                 color = Color.White
                             )
                         }
-                        Text(
-                            text = "Portal intelligence & active monitoring.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = Color.White.copy(alpha = 0.7f)
-                        )
+                        if (isOverviewExpanded) {
+                            Text(
+                                text = "Portal intelligence & active monitoring.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color.White.copy(alpha = 0.7f)
+                            )
+                        }
                     }
 
                     // Navigation to auxiliary utilities
@@ -273,13 +276,30 @@ fun DashboardScreen(
                 }
             }
 
-            // BENTO GRID SUMMARY SECTION (Features 10 & 16 with Bento Grid theme styling)
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            // Trust & Verification Layer / Sync Health Dashboard Panel
+            val syncState by viewModel.syncHealth.collectAsState()
+            var showDetailedLogs by remember { mutableStateOf(false) }
+
+            // Automatic Self-Healing Recovery Scan Trigger. If out of sync, automatically trigger heal scan
+            LaunchedEffect(syncState.status) {
+                if (syncState.status == com.example.data.repository.SyncStatus.OUT_OF_SYNC) {
+                    viewModel.triggerPortalScan(context)
+                }
+            }
+
+            AnimatedVisibility(
+                visible = isOverviewExpanded,
+                enter = fadeIn() + expandVertically(),
+                exit = fadeOut() + shrinkVertically()
             ) {
+                Column {
+                    // BENTO GRID SUMMARY SECTION (Features 10 & 16 with Bento Grid theme styling)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
                 // Left main Bento Card (weight = 2) - active status summary
                 Card(
                     modifier = Modifier
@@ -423,17 +443,6 @@ fun DashboardScreen(
                             )
                         }
                     }
-                }
-            }
-
-            // Trust & Verification Layer / Sync Health Dashboard Panel
-            val syncState by viewModel.syncHealth.collectAsState()
-            var showDetailedLogs by remember { mutableStateOf(false) }
-
-            // Automatic Self-Healing Recovery Scan Trigger. If out of sync, automatically trigger heal scan
-            LaunchedEffect(syncState.status) {
-                if (syncState.status == com.example.data.repository.SyncStatus.OUT_OF_SYNC) {
-                    viewModel.triggerPortalScan(context)
                 }
             }
 
@@ -621,6 +630,36 @@ fun DashboardScreen(
                     }
                 }
             }
+                }
+            }
+
+            // QUICK TOGGLE TO RECLAIM SCREEN ESTATE FOR THE ALL TENDERS LIST
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                TextButton(
+                    onClick = { isOverviewExpanded = !isOverviewExpanded },
+                    modifier = Modifier.height(32.dp).testTag("toggle_overview_button"),
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
+                ) {
+                    Icon(
+                        imageVector = if (isOverviewExpanded) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = if (isOverviewExpanded) "Minimize Highlights" else "Expand Highlights",
+                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
 
             // TAB BAR (Personalized, Search, Watchlist)
             TabRow(
@@ -629,7 +668,10 @@ fun DashboardScreen(
             ) {
                 Tab(
                     selected = currentTabSelected == 0,
-                    onClick = { currentTabSelected = 0 },
+                    onClick = { 
+                        currentTabSelected = 0
+                        isOverviewExpanded = true
+                    },
                     text = {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Default.FilterList, contentDescription = null, modifier = Modifier.size(16.dp))
@@ -641,7 +683,10 @@ fun DashboardScreen(
                 )
                 Tab(
                     selected = currentTabSelected == 1,
-                    onClick = { currentTabSelected = 1 },
+                    onClick = { 
+                        currentTabSelected = 1
+                        isOverviewExpanded = false
+                    },
                     text = {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(16.dp))
@@ -653,7 +698,10 @@ fun DashboardScreen(
                 )
                 Tab(
                     selected = currentTabSelected == 2,
-                    onClick = { currentTabSelected = 2 },
+                    onClick = { 
+                        currentTabSelected = 2
+                        isOverviewExpanded = false
+                    },
                     text = {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Default.Bookmark, contentDescription = null, modifier = Modifier.size(16.dp))
