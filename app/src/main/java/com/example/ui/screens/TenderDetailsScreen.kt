@@ -50,6 +50,7 @@ fun TenderDetailsScreen(
     }
 
     val t = tender!!
+    val context = androidx.compose.ui.platform.LocalContext.current
 
     val formattedDate = SimpleDateFormat("dd MMM yyyy", Locale.getDefault())
 
@@ -173,6 +174,67 @@ fun TenderDetailsScreen(
                     style = MaterialTheme.typography.bodyMedium.copy(lineHeight = 22.sp),
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Source Transparency: Direct Link to Kerala eTenders portal
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp)
+                        .testTag("view_original_tender_card"),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.15f)
+                    ),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)),
+                    onClick = {
+                        try {
+                            val intent = android.content.Intent(android.content.Intent.ACTION_VIEW).apply {
+                                data = android.net.Uri.parse("https://etenders.kerala.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTenderDetailsQuery&service=direct&sp=${t.id}")
+                            }
+                            context.startActivity(intent)
+                        } catch (e: Exception) {
+                            // Handler fallback
+                        }
+                    }
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                            Icon(
+                                imageVector = Icons.Filled.Launch,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column {
+                                Text(
+                                    text = "View Original Portal Listing",
+                                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                                Text(
+                                    text = "Official ID: ${t.id} • ${t.department}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                )
+                            }
+                        }
+                        Icon(
+                            imageVector = Icons.Filled.KeyboardArrowRight,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
 
                 Spacer(modifier = Modifier.height(20.dp))
 

@@ -114,6 +114,8 @@ class TenderViewModel(application: Application) : AndroidViewModel(application) 
     private val _latestScanResultCount = MutableStateFlow<Int?>(null)
     val latestScanResultCount = _latestScanResultCount.asStateFlow()
 
+    val syncHealth = repository.syncHealth
+
     // --- AI Assistant / Gemini States ---
     private val _aiResponse = MutableStateFlow<String?>(null)
     val aiResponse = _aiResponse.asStateFlow()
@@ -161,13 +163,21 @@ class TenderViewModel(application: Application) : AndroidViewModel(application) 
         searchFiltersFlow
     ) { tenders, filters ->
         tenders.filter { tender ->
-            val matchesQuery = filters.query.isBlank() ||
-                    tender.title.contains(filters.query, ignoreCase = true) ||
-                    tender.description.contains(filters.query, ignoreCase = true) ||
-                    tender.town.contains(filters.query, ignoreCase = true) ||
-                    tender.id.contains(filters.query, ignoreCase = true)
+            val query = filters.query.trim()
+            val matchesQuery = query.isBlank() ||
+                    tender.title.contains(query, ignoreCase = true) ||
+                    tender.description.contains(query, ignoreCase = true) ||
+                    tender.town.contains(query, ignoreCase = true) ||
+                    tender.district.contains(query, ignoreCase = true) ||
+                    tender.id.contains(query, ignoreCase = true) ||
+                    (query.contains("trivandrum", ignoreCase = true) && tender.district.contains("Thiruvananthapuram", ignoreCase = true)) ||
+                    (query.contains("thiruvananthapuram", ignoreCase = true) && tender.district.contains("Thiruvananthapuram", ignoreCase = true)) ||
+                    (query.contains("tvm", ignoreCase = true) && tender.district.contains("Thiruvananthapuram", ignoreCase = true))
 
-            val matchesDistrict = filters.district == "All" || tender.district.equals(filters.district, ignoreCase = true)
+            val matchesDistrict = filters.district == "All" ||
+                    tender.district.equals(filters.district, ignoreCase = true) ||
+                    (filters.district.equals("Thiruvananthapuram", ignoreCase = true) && tender.district.equals("Trivandrum", ignoreCase = true)) ||
+                    (filters.district.equals("Trivandrum", ignoreCase = true) && tender.district.equals("Thiruvananthapuram", ignoreCase = true))
             val matchesCategory = filters.category == "All" || tender.category.equals(filters.category, ignoreCase = true)
             val matchesDepartment = filters.department == "All" || tender.department.equals(filters.department, ignoreCase = true)
 
@@ -421,9 +431,7 @@ class TenderViewModel(application: Application) : AndroidViewModel(application) 
 
         viewModelScope.launch {
             try {
-                // Simulate net delay
-                kotlinx.coroutines.delay(2000)
-                val alertsCount = repository.runMonitoringScan(context)
+                val alertsCount = repository.runCrawlerSynchronization(context)
                 _latestScanResultCount.value = alertsCount
             } catch (e: Exception) {
                 _latestScanResultCount.value = 0

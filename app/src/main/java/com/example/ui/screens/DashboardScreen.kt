@@ -426,6 +426,202 @@ fun DashboardScreen(
                 }
             }
 
+            // Trust & Verification Layer / Sync Health Dashboard Panel
+            val syncState by viewModel.syncHealth.collectAsState()
+            var showDetailedLogs by remember { mutableStateOf(false) }
+
+            // Automatic Self-Healing Recovery Scan Trigger. If out of sync, automatically trigger heal scan
+            LaunchedEffect(syncState.status) {
+                if (syncState.status == com.example.data.repository.SyncStatus.OUT_OF_SYNC) {
+                    viewModel.triggerPortalScan(context)
+                }
+            }
+
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                    .testTag("sync_health_dashboard_card"),
+                colors = CardDefaults.cardColors(
+                    containerColor = when (syncState.status) {
+                        com.example.data.repository.SyncStatus.VERIFIED -> Color(0xFFF0FDF4) // Light green
+                        com.example.data.repository.SyncStatus.SYNCING -> Color(0xFFEFF6FF) // Light blue
+                        com.example.data.repository.SyncStatus.OUT_OF_SYNC -> Color(0xFFFEFCE8) // Light yellow
+                        else -> Color(0xFFFEF2F2)
+                    }
+                ),
+                border = BorderStroke(
+                    width = 1.dp,
+                    color = when (syncState.status) {
+                        com.example.data.repository.SyncStatus.VERIFIED -> Color(0xFFBBF7D0)
+                        com.example.data.repository.SyncStatus.SYNCING -> Color(0xFFBFDBFE)
+                        com.example.data.repository.SyncStatus.OUT_OF_SYNC -> Color(0xFFFEF08A)
+                        else -> Color(0xFFFCA5A5)
+                    }
+                ),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Column(modifier = Modifier.padding(14.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = when (syncState.status) {
+                                    com.example.data.repository.SyncStatus.VERIFIED -> Icons.Default.CheckCircle
+                                    com.example.data.repository.SyncStatus.SYNCING -> Icons.Default.Sync
+                                    com.example.data.repository.SyncStatus.OUT_OF_SYNC -> Icons.Default.Warning
+                                    else -> Icons.Default.Error
+                                },
+                                contentDescription = null,
+                                tint = when (syncState.status) {
+                                    com.example.data.repository.SyncStatus.VERIFIED -> Color(0xFF16A34A)
+                                    com.example.data.repository.SyncStatus.SYNCING -> Color(0xFF2563EB)
+                                    com.example.data.repository.SyncStatus.OUT_OF_SYNC -> Color(0xFFCA8A04)
+                                    else -> Color(0xFFDC2626)
+                                },
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "eTender Trust & Verification Center",
+                                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                                color = Color(0xFF0F172A)
+                            )
+                        }
+
+                        // Badge status
+                        Box(
+                            modifier = Modifier
+                                .background(
+                                    color = when (syncState.status) {
+                                        com.example.data.repository.SyncStatus.VERIFIED -> Color(0xFFDCFCE7)
+                                        com.example.data.repository.SyncStatus.SYNCING -> Color(0xFFDBEAFE)
+                                        com.example.data.repository.SyncStatus.OUT_OF_SYNC -> Color(0xFFFEF9C3)
+                                        else -> Color(0xFFFEE2E2)
+                                    },
+                                    shape = RoundedCornerShape(12.dp)
+                                )
+                                .padding(horizontal = 8.dp, vertical = 2.dp)
+                        ) {
+                            Text(
+                                text = when (syncState.status) {
+                                    com.example.data.repository.SyncStatus.VERIFIED -> "Verified"
+                                    com.example.data.repository.SyncStatus.SYNCING -> "Syncing Portal"
+                                    com.example.data.repository.SyncStatus.OUT_OF_SYNC -> "Out of Sync"
+                                    else -> "Sync Failure"
+                                }.uppercase(),
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 9.sp
+                                ),
+                                color = when (syncState.status) {
+                                    com.example.data.repository.SyncStatus.VERIFIED -> Color(0xFF15803D)
+                                    com.example.data.repository.SyncStatus.SYNCING -> Color(0xFF1D4ED8)
+                                    com.example.data.repository.SyncStatus.OUT_OF_SYNC -> Color(0xFFA16207)
+                                    else -> Color(0xFFB91C1C)
+                                }
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // Dashboard counts grid
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column {
+                            Text("PORTAL ACTIVE COUNT", style = MaterialTheme.typography.labelSmall, color = Color(0xFF64748B))
+                            Text("${syncState.portalCount} Tenders", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = Color(0xFF1E293B))
+                        }
+                        Column {
+                            Text("TENDERLENS LOCAL", style = MaterialTheme.typography.labelSmall, color = Color(0xFF64748B))
+                            Text("${syncState.localCount} Tenders", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = Color(0xFF1E293B))
+                        }
+                        Column(horizontalAlignment = Alignment.End) {
+                            Text("STATUS", style = MaterialTheme.typography.labelSmall, color = Color(0xFF64748B))
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                if (syncState.status == com.example.data.repository.SyncStatus.VERIFIED) {
+                                    Icon(Icons.Default.Check, contentDescription = null, tint = Color(0xFF16A34A), modifier = Modifier.size(16.dp))
+                                } else if (syncState.status == com.example.data.repository.SyncStatus.OUT_OF_SYNC) {
+                                    Icon(Icons.Default.Warning, contentDescription = null, tint = Color(0xFFCA8A04), modifier = Modifier.size(16.dp))
+                                }
+                                Text(
+                                    text = if (syncState.status == com.example.data.repository.SyncStatus.VERIFIED) "✓ Complete" else "⚠ Healing (Auto)",
+                                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                                    color = if (syncState.status == com.example.data.repository.SyncStatus.VERIFIED) Color(0xFF16A34A) else Color(0xFFCA8A04)
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    HorizontalDivider(color = Color(0xFFCBD5E1).copy(alpha = 0.5f))
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        val formatTime = java.text.SimpleDateFormat("hh:mm a", java.util.Locale.getDefault()).format(java.util.Date(syncState.lastSyncTime))
+                        Text(
+                            text = "Last verified check: $formatTime",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color(0xFF64748B)
+                        )
+
+                        TextButton(
+                            onClick = { showDetailedLogs = !showDetailedLogs },
+                            contentPadding = PaddingValues(0.dp)
+                        ) {
+                            Text(
+                                text = if (showDetailedLogs) "Hide Scan Logs ▴" else "View Sync Diagnostics (" + syncState.logs.size + ") ▾",
+                                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                            )
+                        }
+                    }
+
+                    AnimatedVisibility(visible = showDetailedLogs) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(Color(0xFF0F172A), RoundedCornerShape(8.dp))
+                                .padding(12.dp)
+                        ) {
+                            Text(
+                                "REAL-TIME CRAWLER OUTPUT (https://etenders.kerala.gov.in)",
+                                style = MaterialTheme.typography.labelSmall.copy(color = Color(0xFF10B981), fontWeight = FontWeight.Bold)
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+                            syncState.logs.forEach { log ->
+                                Row(
+                                    modifier = Modifier.padding(vertical = 2.dp),
+                                    verticalAlignment = Alignment.Top
+                                ) {
+                                    Text("▸", style = MaterialTheme.typography.bodySmall.copy(color = Color(0xFF38BDF8)))
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = log,
+                                        style = MaterialTheme.typography.bodySmall.copy(
+                                            fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                                            color = Color.White.copy(alpha = 0.85f),
+                                            fontSize = 10.sp
+                                        )
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
             // TAB BAR (Personalized, Search, Watchlist)
             TabRow(
                 selectedTabIndex = currentTabSelected,
